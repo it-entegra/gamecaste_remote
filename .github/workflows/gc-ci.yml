@@ -1,0 +1,95 @@
+name: GC CI
+
+# Minimal compile check for the GameCaste fork. Verifies that the shared Rust
+# code (e.g. the src/common.rs config bake) still compiles. The full
+# Windows + Flutter + MSI build is a separate, later workflow.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+      - 'gc/**'
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+  pull_request:
+    branches:
+      - dev
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+
+concurrency:
+  group: gc-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+
+jobs:
+  check:
+    name: cargo check (x86_64-unknown-linux-gnu)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          sudo apt-get -y update
+          sudo apt-get install -y \
+             clang cmake curl gcc git g++ \
+             libasound2-dev libunwind-dev \
+             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+             libgtk-3-dev libpulse-dev libva-dev libvdpau-dev \
+             libxcb-randr0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+             libxdo-dev libxfixes-dev nasm wget
+
+      - name: Setup vcpkg with Github Actions binary cache
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgDirectory: /opt/artifacts/vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+
+      - name: Install vcpkg dependencies
+        shell: bash
+        run: |
+          $VCPKG_ROOT/vcpkg install --x-install-root="$VCPKG_ROOT/installed"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+
+      - name: Show versions
+        shell: bash
+        run: |
+          rustup -V; cargo -V; rustc -V; gcc --version || true
+
+      - name: cargo check
+        run: cargo check --locked
