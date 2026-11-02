@@ -10,6 +10,14 @@ name: GC Build Windows
 
 on:
   workflow_dispatch:
+    inputs:
+      edition:
+        description: "Build edition (club = hidden host / incoming; admin = windowed / outgoing)"
+        type: choice
+        options:
+          - club
+          - admin
+        default: club
 
 jobs:
   generate-bridge:
@@ -94,6 +102,7 @@ jobs:
       VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
       VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
       VERSION: "1.5.1"
+      GAMECASTE_EDITION: ${{ inputs.edition }}
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
@@ -152,7 +161,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          prefix-key: windows-2022
+          prefix-key: windows-2022-${{ inputs.edition }}
 
       - name: Setup vcpkg with Github Actions binary cache
         uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
@@ -191,6 +200,6 @@ jobs:
       - name: Upload portable client
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: gamecaste-remote-windows-x64-portable
+          name: gamecaste-remote-windows-x64-portable-${{ inputs.edition }}
           path: rustdesk
           if-no-files-found: error

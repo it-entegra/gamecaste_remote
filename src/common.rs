@@ -2669,8 +2669,27 @@ pub fn read_custom_client(config: &str) {
 // RustDesk Pro's), so we set the same OVERWRITE settings read_custom_client
 // would, via its own router, so get_custom_rendezvous_server / get_api_server
 // and option lookups resolve to our server.
+/// GameCaste build edition, chosen at compile time via the `GAMECASTE_EDITION`
+/// env var. Unset (or anything other than `admin`) is the club host build.
+#[inline]
+pub fn gamecaste_is_admin_edition() -> bool {
+    matches!(option_env!("GAMECASTE_EDITION"), Some("admin"))
+}
+
+/// App name per edition. Drives the config dir, the Windows service name and the
+/// `{app_name}://` URI scheme (`get_uri_prefix`): club -> `gamecasteremotehost://`,
+/// admin -> `gamecasteremote://`.
+#[inline]
+pub fn gamecaste_app_name() -> &'static str {
+    if gamecaste_is_admin_edition() {
+        "GamecasteRemote"
+    } else {
+        "GamecasteRemoteHost"
+    }
+}
+
 pub fn apply_gamecaste_builtin_config() {
-    *config::APP_NAME.write().unwrap() = "GamecasteRemoteHost".to_owned();
+    *config::APP_NAME.write().unwrap() = gamecaste_app_name().to_owned();
     *config::PROD_RENDEZVOUS_SERVER.write().unwrap() = "remote.nepalimsya.ru".to_owned();
 
     let mut map_display_settings = HashMap::new();
