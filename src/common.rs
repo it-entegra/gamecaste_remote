@@ -2731,6 +2731,18 @@ pub fn apply_gamecaste_builtin_config() {
         &map_buildin_settings,
         true,
     );
+
+    // Baked quality defaults for remote sessions. DEFAULT_* (not OVERWRITE_*) so
+    // a user's own later choice still wins; h265 falls back on the codec
+    // negotiation when the host has no H265 encoder.
+    let mut display_defaults = config::DEFAULT_DISPLAY_SETTINGS.write().unwrap();
+    for (k, v) in [
+        (keys::OPTION_IMAGE_QUALITY, "best"),
+        (keys::OPTION_CODEC_PREFERENCE, "h265"),
+        (keys::OPTION_CUSTOM_FPS, "60"),
+    ] {
+        display_defaults.insert(k.to_owned(), v.to_owned());
+    }
 }
 
 #[inline]
