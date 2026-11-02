@@ -2493,6 +2493,7 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
 }
 
 pub fn load_custom_client() {
+    apply_gamecaste_builtin_config();
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
@@ -2661,6 +2662,56 @@ pub fn read_custom_client(config: &str) {
                 .insert(k, v.to_owned());
         };
     }
+}
+
+// GameCaste self-hosted build: bake the server config into the binary without
+// the Pro-signed custom.txt. We cannot sign a custom.txt (the private key is
+// RustDesk Pro's), so we set the same OVERWRITE settings read_custom_client
+// would, via its own router, so get_custom_rendezvous_server / get_api_server
+// and option lookups resolve to our server.
+pub fn apply_gamecaste_builtin_config() {
+    *config::APP_NAME.write().unwrap() = "GamecasteRemoteHost".to_owned();
+    *config::PROD_RENDEZVOUS_SERVER.write().unwrap() = "remote.nepalimsya.ru".to_owned();
+
+    let mut map_display_settings = HashMap::new();
+    for s in keys::KEYS_DISPLAY_SETTINGS {
+        map_display_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut map_local_settings = HashMap::new();
+    for s in keys::KEYS_LOCAL_SETTINGS {
+        map_local_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut map_settings = HashMap::new();
+    for s in keys::KEYS_SETTINGS {
+        map_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut map_buildin_settings = HashMap::new();
+    for s in keys::KEYS_BUILDIN_SETTINGS {
+        map_buildin_settings.insert(s.replace("_", "-"), s);
+    }
+
+    let mut overwrite = serde_json::Map::new();
+    for (k, v) in [
+        (
+            keys::OPTION_KEY,
+            "wG0RbrqL5QKpqu4yQ2ElV1MI6kDTUoM6lCo3zirHf+E=",
+        ),
+        (keys::OPTION_CUSTOM_RENDEZVOUS_SERVER, "remote.nepalimsya.ru"),
+        (keys::OPTION_API_SERVER, "https://remote.nepalimsya.ru"),
+        (keys::OPTION_ENABLE_CHECK_UPDATE, "N"),
+        (keys::OPTION_ALLOW_AUTO_UPDATE, "N"),
+        (keys::OPTION_THEME, "dark"),
+    ] {
+        overwrite.insert(k.to_owned(), v.into());
+    }
+    read_custom_client_advanced_settings(
+        serde_json::Value::Object(overwrite),
+        &map_display_settings,
+        &map_local_settings,
+        &map_settings,
+        &map_buildin_settings,
+        true,
+    );
 }
 
 #[inline]
