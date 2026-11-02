@@ -2692,6 +2692,19 @@ pub fn apply_gamecaste_builtin_config() {
     *config::APP_NAME.write().unwrap() = gamecaste_app_name().to_owned();
     *config::PROD_RENDEZVOUS_SERVER.write().unwrap() = "remote.nepalimsya.ru".to_owned();
 
+    // Direction per edition, via RustDesk's built-in conn-type hard setting:
+    // admin connects out only (is_outgoing_only), club is a host that only
+    // accepts incoming (is_incoming_only).
+    config::HARD_SETTINGS.write().unwrap().insert(
+        "conn-type".to_owned(),
+        if gamecaste_is_admin_edition() {
+            "outgoing"
+        } else {
+            "incoming"
+        }
+        .to_owned(),
+    );
+
     let mut map_display_settings = HashMap::new();
     for s in keys::KEYS_DISPLAY_SETTINGS {
         map_display_settings.insert(s.replace("_", "-"), s);
