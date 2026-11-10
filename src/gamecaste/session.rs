@@ -1,10 +1,13 @@
-use super::remote_config::{self, RemoteConfig};
+use super::{
+    http_client,
+    remote_config::{self, RemoteConfig},
+    HTTP_TIMEOUT,
+};
 use hbb_common::{
     bail,
     bytes::Bytes,
     log, password_security as password,
     rand::{thread_rng, Rng},
-    tls::TlsType,
     tokio::{
         self,
         time::{sleep, timeout, Duration},
@@ -15,7 +18,6 @@ use hbb_common::{
 use reqwest::StatusCode;
 use serde_json::{json, Value};
 
-const HTTP_TIMEOUT: Duration = Duration::from_secs(15);
 const WS_CONNECT_TIMEOUT_MS: u64 = 15_000;
 // The server pings every 25 s.
 const WS_SILENCE_TIMEOUT: Duration = Duration::from_secs(60);
@@ -77,17 +79,6 @@ pub async fn run() {
         failures = failures.saturating_add(1);
         let jitter = thread_rng().gen_range(0..1000u64);
         sleep(Duration::from_millis(seconds * 1000 + jitter)).await;
-    }
-}
-
-async fn http_client(url: &str) -> ResultType<reqwest::Client> {
-    if url.starts_with("https://") {
-        crate::hbbs_http::create_http_client_async_with_url_strict(url).await
-    } else {
-        Ok(crate::hbbs_http::create_http_client_async(
-            TlsType::Plain,
-            false,
-        ))
     }
 }
 
