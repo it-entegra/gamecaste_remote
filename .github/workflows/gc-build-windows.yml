@@ -189,6 +189,11 @@ jobs:
         run: |
           python3 .\build.py --portable --flutter --skip-portable-pack --hwcodec --vram
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
+          # The in-app installer copies this folder as is and then starts "<app name>.exe"
+          # (src/platform/windows.rs get_install_info), so the exe must carry the app name
+          # (src/common.rs gamecaste_app_name).
+          $appName = if ("${{ inputs.edition }}" -eq "admin") { "GamecasteRemote" } else { "GamecasteRemoteHost" }
+          Rename-Item ./rustdesk/rustdesk.exe "$appName.exe"
 
           # Virtual display driver (small; feature degrades gracefully without it)
           Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
