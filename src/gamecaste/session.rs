@@ -73,7 +73,7 @@ pub async fn run() {
                 hbb_common::throttled_log!(LOG_INTERVAL, warn, "Session channel token: {}", err);
             }
         }
-        let seconds = (1u64 << failures.min(4)).min(20);
+        let seconds = (1u64 << failures.min(6)).min(60);
         failures = failures.saturating_add(1);
         let jitter = thread_rng().gen_range(0..1000u64);
         sleep(Duration::from_millis(seconds * 1000 + jitter)).await;
