@@ -179,7 +179,7 @@ pub fn core_main() -> Option<CoreMainAction> {
             log_name = name;
         }
     }
-    hbb_common::init_log(false, &log_name);
+    crate::gamecaste::relocate_log(hbb_common::init_log(false, &log_name), &log_name);
 
     // linux uni (url) go here.
     #[cfg(all(target_os = "linux", feature = "flutter"))]
