@@ -63,6 +63,7 @@
 			<ComponentRef Id="Product.Registry.PersistedDesktopShortcutProperties0" />
 			<ComponentRef Id="Product.Registry.PersistedPrinterProperties1" />
 			<ComponentRef Id="Product.Registry.PersistedPrinterProperties0" />
+			<ComponentRef Id="Gamecaste.RemoveRustDeskAutorun" />
 		</Feature>
 
 		<!--https://wixtoolset.org/docs/tools/wixext/wixui/#customizing-a-dialog-set-->

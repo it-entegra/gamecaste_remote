@@ -1,0 +1,31 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+	<Fragment>
+		<!-- Everything here applies to the GameCaste club host only, which
+		     preprocess.py marks with conn-type incoming. -->
+
+		<!-- The club host is a hidden service: no shortcuts and no tray, whatever the
+		     defaults, the command line or an earlier installation say. -->
+		<SetProperty Action="GcNoStartMenuShortcuts" Id="STARTMENUSHORTCUTS" Value="" Before="CostInitialize" Sequence="execute" Condition="CC_CONNECTION_TYPE=&quot;incoming&quot;" />
+		<SetProperty Action="GcNoDesktopShortcuts" Id="DESKTOPSHORTCUTS" Value="" Before="CostInitialize" Sequence="execute" Condition="CC_CONNECTION_TYPE=&quot;incoming&quot;" />
+		<SetProperty Action="GcNoStartupShortcuts" Id="STARTUPSHORTCUTS" Value="" Before="CostInitialize" Sequence="execute" Condition="CC_CONNECTION_TYPE=&quot;incoming&quot;" />
+		<SetProperty Action="GcNoTrayLaunch" Id="LAUNCH_TRAY_APP" Value="N" Before="CostInitialize" Sequence="execute" Condition="CC_CONNECTION_TYPE=&quot;incoming&quot;" />
+
+		<!-- A club PC moves to this client from the official RustDesk that the
+		     GameCaste shell used to run. Its service and the shell's hidden autorun
+		     go, so that the two never serve the same PC; its files stay. The service
+		     action is the one this package stops its own service with, which also
+		     ends the processes named after the service. -->
+		<CustomAction Id="GcRemoveRustDeskService" DllEntry="TryStopDeleteService" Impersonate="no" Execute="deferred" Return="ignore" BinaryRef="Custom_Actions_Dll" />
+		<CustomAction Id="GcRemoveRustDeskService.SetParam" Return="check" Property="GcRemoveRustDeskService" Value="RustDesk" />
+		<InstallExecuteSequence>
+			<Custom Action="GcRemoveRustDeskService" Before="InstallFiles" Condition="NOT Installed AND CC_CONNECTION_TYPE=&quot;incoming&quot;" />
+			<Custom Action="GcRemoveRustDeskService.SetParam" Before="GcRemoveRustDeskService" Condition="NOT Installed AND CC_CONNECTION_TYPE=&quot;incoming&quot;" />
+		</InstallExecuteSequence>
+
+		<StandardDirectory Id="CommonAppDataFolder">
+			<Component Id="Gamecaste.RemoveRustDeskAutorun" Guid="6C3624AD-D27E-48C4-A522-8CAB03FE565A" Bitness="always64" KeyPath="yes" Condition="CC_CONNECTION_TYPE=&quot;incoming&quot;">
+				<RemoveRegistryValue Id="GcRemoveRustDeskAutorun" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="RustDesk" />
+			</Component>
+		</StandardDirectory>
+	</Fragment>
+</Wix>

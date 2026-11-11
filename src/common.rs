@@ -2736,6 +2736,11 @@ pub fn apply_gamecaste_builtin_config() {
     ] {
         overwrite.insert(k.to_owned(), v.into());
     }
+    // The club host shows the player nothing; without this the server starts the
+    // tray in the player's session on every incoming connection.
+    if !gamecaste_is_admin_edition() {
+        overwrite.insert(keys::OPTION_HIDE_TRAY.to_owned(), "Y".into());
+    }
     read_custom_client_advanced_settings(
         serde_json::Value::Object(overwrite),
         &map_display_settings,
