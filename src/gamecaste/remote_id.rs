@@ -15,12 +15,14 @@ const IDLE_POLL_INTERVAL: Duration = Duration::from_secs(10);
 const RETRY_INTERVAL: Duration = Duration::from_secs(60);
 const REFRESH_INTERVAL: Duration = Duration::from_secs(6 * 3600);
 const LOG_INTERVAL: Duration = Duration::from_secs(600);
+const SYSINFO_RESEND_INTERVAL: Duration = Duration::from_secs(600);
 
 /// Tells the backend which RustDesk id this PC answers on, so the admin panel
 /// can connect to it. Repeated until the backend links the id, then whenever the
 /// id or the activation changes, and now and then in case the link was dropped.
 pub async fn run() {
     let mut linked: Option<(RemoteConfig, String, Instant)> = None;
+    let mut sysinfo_resent: Option<Instant> = None;
     loop {
         let mut pause = IDLE_POLL_INTERVAL;
         if let Some(config) = remote_config::load().await {
@@ -47,6 +49,15 @@ pub async fn run() {
                         linked = Some((config, id, Instant::now()));
                     }
                     Ok(false) => {
+                        // The RustDesk API server learns this PC from the sysinfo uploaded
+                        // at start and never asks for it again, so a record it has dropped
+                        // since comes back only with a new upload.
+                        if sysinfo_resent
+                            .map_or(true, |at| at.elapsed() >= SYSINFO_RESEND_INTERVAL)
+                        {
+                            crate::hbbs_http::sync::resend_sysinfo();
+                            sysinfo_resent = Some(Instant::now());
+                        }
                         // The backend learns ids from the RustDesk API server on a timer.
                         hbb_common::throttled_log!(
                             LOG_INTERVAL,

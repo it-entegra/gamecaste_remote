@@ -36,6 +36,16 @@ pub fn signal_receiver() -> broadcast::Receiver<Vec<i32>> {
 }
 
 #[cfg(not(any(target_os = "ios")))]
+static RESEND_SYSINFO: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Uploads sysinfo again on the next tick, for a server that has dropped this
+/// device's record and does not ask for it back in its heartbeat reply.
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+pub fn resend_sysinfo() {
+    RESEND_SYSINFO.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+#[cfg(not(any(target_os = "ios")))]
 fn start_hbbs_sync() -> broadcast::Sender<Vec<i32>> {
     let (tx, _rx) = broadcast::channel::<Vec<i32>>(16);
     std::thread::spawn(move || start_hbbs_sync_async());
@@ -108,6 +118,9 @@ async fn start_hbbs_sync_async() {
                 if info_uploaded.uploaded && (url != info_uploaded.url || id != info_uploaded.id) {
                     info_uploaded.uploaded = false;
                     *PRO.lock().unwrap() = false;
+                }
+                if RESEND_SYSINFO.swap(false, std::sync::atomic::Ordering::SeqCst) {
+                    info_uploaded.uploaded = false;
                 }
                 // For Windows:
                 // We can't skip uploading sysinfo when the username is empty, because the username may
