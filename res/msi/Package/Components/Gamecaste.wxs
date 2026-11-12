@@ -1,5 +1,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 	<Fragment>
+		<?include ../Includes.wxi?>
+
 		<!-- Everything here applies to the GameCaste club host only, which
 		     preprocess.py marks with conn-type incoming. -->
 
@@ -20,6 +22,15 @@
 		<InstallExecuteSequence>
 			<Custom Action="GcRemoveRustDeskService" Before="InstallFiles" Condition="NOT Installed AND CC_CONNECTION_TYPE=&quot;incoming&quot;" />
 			<Custom Action="GcRemoveRustDeskService.SetParam" Before="GcRemoveRustDeskService" Condition="NOT Installed AND CC_CONNECTION_TYPE=&quot;incoming&quot;" />
+		</InstallExecuteSequence>
+
+		<!-- The action that creates the service lists it as "<app name> Service".
+		     Show the product's name there instead. -->
+		<CustomAction Id="GcNameService" DllEntry="WixQuietExec" Impersonate="no" Execute="deferred" Return="ignore" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" />
+		<CustomAction Id="GcNameService.SetParam" Return="check" Property="GcNameService" Value="&quot;[System64Folder]sc.exe&quot; config $(var.Product) DisplayName= &quot;GameCaste Remote Host&quot;" />
+		<InstallExecuteSequence>
+			<Custom Action="GcNameService" After="CreateStartService" Condition="(NOT (Installed AND REMOVE AND NOT UPGRADINGPRODUCTCODE)) AND (NOT STOP_SERVICE=&quot;&apos;Y&apos;&quot;) AND CC_CONNECTION_TYPE=&quot;incoming&quot;" />
+			<Custom Action="GcNameService.SetParam" Before="GcNameService" Condition="(NOT (Installed AND REMOVE AND NOT UPGRADINGPRODUCTCODE)) AND (NOT STOP_SERVICE=&quot;&apos;Y&apos;&quot;) AND CC_CONNECTION_TYPE=&quot;incoming&quot;" />
 		</InstallExecuteSequence>
 
 		<StandardDirectory Id="CommonAppDataFolder">

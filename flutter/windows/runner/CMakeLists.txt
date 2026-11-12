@@ -28,6 +28,11 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MINOR=${FLUTT
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_PATCH=${FLUTTER_VERSION_PATCH}")
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_BUILD=${FLUTTER_VERSION_BUILD}")
 
+# GameCaste: Runner.rc names the admin edition differently in the version resource.
+if("$ENV{GAMECASTE_EDITION}" STREQUAL "admin")
+  target_compile_definitions(${BINARY_NAME} PRIVATE "GAMECASTE_ADMIN_EDITION")
+endif()
+
 # Disable Windows macros that collide with C++ standard library functions.
 target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 
