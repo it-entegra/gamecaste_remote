@@ -496,10 +496,28 @@ LExit:
 }
 
 void TryCreateStartServiceByShell(LPWSTR svcName, LPWSTR svcBinary, LPWSTR szSvcDisplayName);
+
+// GameCaste: a service that was just created is in place and starts with
+// Windows, so a first start that ran out of the 30 s the service manager allows
+// (new files being scanned, a busy PC) gets one more try and nothing else.
+// TryCreateStartServiceByShell would delete and recreate it with sc commands it
+// does not wait for; they have run out of order and left a PC with no service.
+void GcStartCreatedService(LPWSTR svcName)
+{
+    WcaLog(LOGMSG_STANDARD, "Service \"%ls\" is created but not running, try start it again", svcName);
+    if (MyStartServiceW(svcName) || IsServiceRunningW(svcName)) {
+        WcaLog(LOGMSG_STANDARD, "Service \"%ls\" is started.", svcName);
+    }
+    else {
+        WcaLog(LOGMSG_STANDARD, "Service \"%ls\" is left to start with Windows.", svcName);
+    }
+}
+
 UINT __stdcall CreateStartService(__in MSIHANDLE hInstall)
 {
     HRESULT hr = S_OK;
     DWORD er = ERROR_SUCCESS;
+    bool gcServiceCreated = false;
 
     LPWSTR svcParams = NULL;
     LPWSTR pwz = NULL;
@@ -533,6 +551,7 @@ UINT __stdcall CreateStartService(__in MSIHANDLE hInstall)
     hr = StringCchPrintfW(szSvcDisplayName, cchSvcDisplayName, L"%ls Service", svcName);
     ExitOnFailure(hr, "Failed to compose a resource identifier string");
     if (MyCreateServiceW(svcName, szSvcDisplayName, svcBinary)) {
+        gcServiceCreated = true;
         WcaLog(LOGMSG_STANDARD, "Service \"%ls\" is created.", svcName);
         if (MyStartServiceW(svcName)) {
             WcaLog(LOGMSG_STANDARD, "Service \"%ls\" is started.", svcName);
@@ -547,6 +566,9 @@ UINT __stdcall CreateStartService(__in MSIHANDLE hInstall)
 
     if (IsServiceRunningW(svcName)) {
         WcaLog(LOGMSG_STANDARD, "Service \"%ls\" is running.", svcName);
+    }
+    else if (gcServiceCreated) {
+        GcStartCreatedService(svcName);
     }
     else {
         WcaLog(LOGMSG_STANDARD, "Service \"%ls\" is not running, try create and start service by shell", svcName);
